@@ -67,11 +67,25 @@ Amazon は **データセンター IP（GitHub Actions のサーバー）から�
 |------|---------------------------|------|
 | ScraperAPI 等の scraping API | `SCRAPERAPI_KEY` | 推奨。安定。無料枠あり |
 | HTTP プロキシ（住宅IP等） | `SCRAPER_PROXY=http://user:pass@host:port` | プロキシ業者契約が必要 |
+| SOCKS5 プロキシ（NordVPN等） | `SCRAPER_PROXY=socks5h://user:pass@host:1080` | 下記の注意参照 |
 | 何もしない | — | ブロックされやすい。取得失敗時は前回値を表示 |
 
 Secrets は `Settings` → `Secrets and variables` → `Actions` から登録します。
 
 > 取得に失敗した場合は、直近で取得できた価格（前回値）を表示し続けます。
+
+### NordVPN の SOCKS5 プロキシを使う場合
+
+1. Nord の管理画面 → 「手動セットアップ / サービス認証情報」で発行される
+   **専用ユーザー名・パスワード**を取得（NordVPN ログイン用とは別物）。
+2. SOCKS5 対応サーバーのホスト名を確認（例: `amsterdam.nl.socks.nordhold.net:1080`）。
+3. Secret `SCRAPER_PROXY` に以下の形式で登録:
+   ```
+   socks5h://<サービスユーザー>:<サービスパスワード>@<ホスト>:1080
+   ```
+
+> ⚠️ NordVPN は VPN/データセンター系 IP のため、Amazon にブロックされる可能性があります。
+> 安定しない場合は住宅 IP（residential）プロキシの利用を検討してください。
 
 ## ローカル実行
 
