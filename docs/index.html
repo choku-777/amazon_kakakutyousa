@@ -27,6 +27,7 @@
   .badge { color: #fff; padding: 2px 10px; border-radius: 999px; font-size: .8rem; font-weight: 600; }
   .up { color: #dc2626; } .down { color: #059669; } .flat { color: #6b7280; }
   .stale { color: #d97706; font-size: .72rem; }
+  .charttitle { font-size: .85rem; color: #6b7280; font-weight: 600; margin: 16px 0 6px; }
   footer { color: #9ca3af; font-size: .75rem; text-align: center; margin-top: 24px; line-height: 1.6; }
 </style>
 </head>
@@ -55,6 +56,8 @@
           <td class="diff"><span class='up'>自社が ￥290 高い</span></td>
         </tr></tbody>
         </table>
+        <div class="charttitle">価格推移</div>
+        <canvas id="chart-0" height="220"></canvas>
       </div><div class="card">
         <h2>ペア: 500g（約10人前）</h2>
         <div class="selfbox">
@@ -75,6 +78,8 @@
           <td class="diff"><span class='up'>自社が ￥50 高い</span></td>
         </tr></tbody>
         </table>
+        <div class="charttitle">価格推移</div>
+        <canvas id="chart-1" height="220"></canvas>
       </div><div class="card">
         <h2>ペア: 300g（約6人前）</h2>
         <div class="selfbox">
@@ -91,6 +96,8 @@
           <td class="diff"><span class='down'>自社が ￥160 安い</span></td>
         </tr></tbody>
         </table>
+        <div class="charttitle">価格推移</div>
+        <canvas id="chart-2" height="220"></canvas>
       </div><div class="card">
         <h2>ペア: 200g（約4人前）</h2>
         <div class="selfbox">
@@ -107,13 +114,9 @@
           <td class="diff"><span class='down'>自社が ￥20 安い</span></td>
         </tr></tbody>
         </table>
+        <div class="charttitle">価格推移</div>
+        <canvas id="chart-3" height="220"></canvas>
       </div>
-
-  <div class="card">
-    <h2>価格差の推移（自社 − 競合）</h2>
-    <canvas id="chart" height="240"></canvas>
-    <p class="updated">プラス = 自社が高い / マイナス = 自社が安い</p>
-  </div>
 
   <footer>
     価格は Amazon (amazon.co.jp) から自動取得した参考値です。<br>
@@ -122,22 +125,24 @@
 </div>
 
 <script>
-const C = {"labels": ["2026-06-09"], "datasets": [{"label": "1kg（約20人前） vs 桜馬 馬刺し 50g×20（通常）", "color": "#2563eb", "data": [90]}, {"label": "1kg（約20人前） vs 桜馬 馬刺し 50g×20（節約便）", "color": "#dc2626", "data": [290]}, {"label": "500g（約10人前） vs 桜馬 馬刺し 500g（通常）", "color": "#059669", "data": [-150]}, {"label": "500g（約10人前） vs 桜馬 馬刺し 500g（節約便）", "color": "#d97706", "data": [50]}, {"label": "300g（約6人前） vs 桜馬 馬刺し 300g", "color": "#7c3aed", "data": [-160]}, {"label": "200g（約4人前） vs 桜馬 馬刺し 200g", "color": "#0891b2", "data": [-20]}]};
-new Chart(document.getElementById('chart'), {
-  type: 'line',
-  data: {
-    labels: C.labels,
-    datasets: C.datasets.map(d => ({
-      label: d.label, data: d.data,
-      borderColor: d.color, backgroundColor: d.color + '22',
-      spanGaps: true, tension: 0.2, pointRadius: 3,
-    })),
-  },
-  options: {
-    responsive: true,
-    plugins: { legend: { position: 'bottom' } },
-    scales: { y: { ticks: { callback: v => '￥' + v.toLocaleString() } } }
-  }
+const C = {"labels": ["2026-06-09"], "charts": [{"id": "chart-0", "datasets": [{"label": "自社", "color": "#2563eb", "data": [5580]}, {"label": "桜馬 馬刺し 50g×20（通常）", "color": "#dc2626", "data": [5490]}, {"label": "桜馬 馬刺し 50g×20（節約便）", "color": "#059669", "data": [5290]}]}, {"id": "chart-1", "datasets": [{"label": "自社", "color": "#2563eb", "data": [3240]}, {"label": "桜馬 馬刺し 500g（通常）", "color": "#dc2626", "data": [3390]}, {"label": "桜馬 馬刺し 500g（節約便）", "color": "#059669", "data": [3190]}]}, {"id": "chart-2", "datasets": [{"label": "自社", "color": "#2563eb", "data": [2590]}, {"label": "桜馬 馬刺し 300g", "color": "#dc2626", "data": [2750]}]}, {"id": "chart-3", "datasets": [{"label": "自社", "color": "#2563eb", "data": [2260]}, {"label": "桜馬 馬刺し 200g", "color": "#dc2626", "data": [2280]}]}]};
+C.charts.forEach(ch => {
+  new Chart(document.getElementById(ch.id), {
+    type: 'line',
+    data: {
+      labels: C.labels,
+      datasets: ch.datasets.map(d => ({
+        label: d.label, data: d.data,
+        borderColor: d.color, backgroundColor: d.color + '22',
+        spanGaps: true, tension: 0.2, pointRadius: 3,
+      })),
+    },
+    options: {
+      responsive: true,
+      plugins: { legend: { position: 'bottom' } },
+      scales: { y: { ticks: { callback: v => '￥' + v.toLocaleString() } } }
+    }
+  });
 });
 </script>
 </body>

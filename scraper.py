@@ -225,25 +225,51 @@ def render_html(config: dict, history: list) -> str:
     updated = history[-1]["date"] if history else "未取得"
     latest = history[-1]["pairs"] if history else {}
 
-    # ペアごとの比較ブロック
+    labels = [r["date"] for r in history]
+    self_color = "#2563eb"
+    comp_colors = ["#dc2626", "#059669", "#d97706", "#7c3aed", "#0891b2", "#db2777"]
+
+    # ペアごとの比較ブロック（比較表 + そのペアの価格推移グラフ）
     pair_blocks = []
-    for label, pair in latest.items():
-        s = pair.get("self", {})
+    charts = []  # 各ペアの価格推移チャート定義
+    for i, pair_cfg in enumerate(config.get("pairs", [])):
+        label = pair_cfg["label"]
+        pdata = latest.get(label, {})
+        s = pdata.get("self", {})
         s_stale = " <span class='stale'>(前回値)</span>" if s.get("stale") else ""
         s_grams = f"（{s['grams']}g）" if s.get("grams") else ""
+
         comp_rows = []
-        for comp in pair.get("competitors", {}).values():
+        for comp_cfg in pair_cfg.get("competitors", []):
+            casin = comp_cfg["asin"]
+            comp = pdata.get("competitors", {}).get(casin, {})
             c_stale = " <span class='stale'>(前回値)</span>" if comp.get("stale") else ""
             c_grams = f"（{comp['grams']}g）" if comp.get("grams") else ""
             comp_rows.append(f"""<tr>
-          <td>{comp.get('name','')}{c_grams}<br><span class="asin">{comp.get('asin','')}</span></td>
+          <td>{comp.get('name', comp_cfg.get('name',''))}{c_grams}<br><span class="asin">{casin}</span></td>
           <td class="price">{fmt_yen(comp.get('price'))}{c_stale}</td>
           <td class="diff">{diff_html(s.get('price'), comp.get('price'))}</td>
         </tr>""")
+
+        # このペアの価格推移データ（自社 + 各競合の実額ライン）
+        ds = [{
+            "label": "自社", "color": self_color,
+            "data": [r.get("pairs", {}).get(label, {}).get("self", {}).get("price") for r in history],
+        }]
+        for j, comp_cfg in enumerate(pair_cfg.get("competitors", [])):
+            casin = comp_cfg["asin"]
+            ds.append({
+                "label": comp_cfg.get("name", casin),
+                "color": comp_colors[j % len(comp_colors)],
+                "data": [r.get("pairs", {}).get(label, {}).get("competitors", {}).get(casin, {}).get("price")
+                         for r in history],
+            })
+        charts.append({"id": f"chart-{i}", "datasets": ds})
+
         pair_blocks.append(f"""<div class="card">
         <h2>ペア: {label}</h2>
         <div class="selfbox">
-          <span class="badge" style="background:#2563eb">自社</span>
+          <span class="badge" style="background:{self_color}">自社</span>
           {s.get('name','')}{s_grams}
           <span class="asin">{s.get('asin','')}</span>
           <span class="bigprice">{fmt_yen(s.get('price'))}{s_stale}</span>
@@ -252,30 +278,11 @@ def render_html(config: dict, history: list) -> str:
           <thead><tr><th>競合</th><th>価格</th><th>自社との比較</th></tr></thead>
           <tbody>{''.join(comp_rows) if comp_rows else '<tr><td colspan=3>競合未設定</td></tr>'}</tbody>
         </table>
+        <div class="charttitle">価格推移</div>
+        <canvas id="chart-{i}" height="220"></canvas>
       </div>""")
 
-    # チャート: ペア×競合ごとの価格差（自社 - 競合）の推移
-    labels = [r["date"] for r in history]
-    colors = ["#2563eb", "#dc2626", "#059669", "#d97706", "#7c3aed", "#0891b2", "#db2777"]
-    datasets = []
-    ci = 0
-    for pair_cfg in config.get("pairs", []):
-        label = pair_cfg["label"]
-        self_asin = pair_cfg["self"]["asin"]
-        for comp in pair_cfg.get("competitors", []):
-            casin = comp["asin"]
-            series = []
-            for r in history:
-                p = r.get("pairs", {}).get(label, {})
-                sp = p.get("self", {}).get("price")
-                cp = p.get("competitors", {}).get(casin, {}).get("price")
-                series.append(sp - cp if (sp is not None and cp is not None) else None)
-            datasets.append({
-                "label": f"{label} vs {comp.get('name', casin)}",
-                "color": colors[ci % len(colors)], "data": series,
-            })
-            ci += 1
-    chart_data = json.dumps({"labels": labels, "datasets": datasets}, ensure_ascii=False)
+    chart_data = json.dumps({"labels": labels, "charts": charts}, ensure_ascii=False)
 
     return f"""<!DOCTYPE html>
 <html lang="ja">
@@ -306,6 +313,7 @@ def render_html(config: dict, history: list) -> str:
   .badge {{ color: #fff; padding: 2px 10px; border-radius: 999px; font-size: .8rem; font-weight: 600; }}
   .up {{ color: #dc2626; }} .down {{ color: #059669; }} .flat {{ color: #6b7280; }}
   .stale {{ color: #d97706; font-size: .72rem; }}
+  .charttitle {{ font-size: .85rem; color: #6b7280; font-weight: 600; margin: 16px 0 6px; }}
   footer {{ color: #9ca3af; font-size: .75rem; text-align: center; margin-top: 24px; line-height: 1.6; }}
 </style>
 </head>
@@ -316,12 +324,6 @@ def render_html(config: dict, history: list) -> str:
 
   {''.join(pair_blocks) if pair_blocks else '<div class="card"><p>データ未取得</p></div>'}
 
-  <div class="card">
-    <h2>価格差の推移（自社 − 競合）</h2>
-    <canvas id="chart" height="240"></canvas>
-    <p class="updated">プラス = 自社が高い / マイナス = 自社が安い</p>
-  </div>
-
   <footer>
     価格は Amazon (amazon.co.jp) から自動取得した参考値です。<br>
     実際の販売価格は各商品ページをご確認ください。
@@ -330,21 +332,23 @@ def render_html(config: dict, history: list) -> str:
 
 <script>
 const C = {chart_data};
-new Chart(document.getElementById('chart'), {{
-  type: 'line',
-  data: {{
-    labels: C.labels,
-    datasets: C.datasets.map(d => ({{
-      label: d.label, data: d.data,
-      borderColor: d.color, backgroundColor: d.color + '22',
-      spanGaps: true, tension: 0.2, pointRadius: 3,
-    }})),
-  }},
-  options: {{
-    responsive: true,
-    plugins: {{ legend: {{ position: 'bottom' }} }},
-    scales: {{ y: {{ ticks: {{ callback: v => '￥' + v.toLocaleString() }} }} }}
-  }}
+C.charts.forEach(ch => {{
+  new Chart(document.getElementById(ch.id), {{
+    type: 'line',
+    data: {{
+      labels: C.labels,
+      datasets: ch.datasets.map(d => ({{
+        label: d.label, data: d.data,
+        borderColor: d.color, backgroundColor: d.color + '22',
+        spanGaps: true, tension: 0.2, pointRadius: 3,
+      }})),
+    }},
+    options: {{
+      responsive: true,
+      plugins: {{ legend: {{ position: 'bottom' }} }},
+      scales: {{ y: {{ ticks: {{ callback: v => '￥' + v.toLocaleString() }} }} }}
+    }}
+  }});
 }});
 </script>
 </body>
