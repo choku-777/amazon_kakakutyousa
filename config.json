@@ -33,6 +33,16 @@
       "competitors": [
         { "name": "桜馬 馬刺し 300g", "asin": "B0BPHM8BBG" }
       ]
+    },
+    {
+      "label": "200g（約4人前）",
+      "self": {
+        "name": "自社 馬刺し プレミアム上赤身 200g",
+        "asin": "B0GJV63DJB"
+      },
+      "competitors": [
+        { "name": "桜馬 馬刺し 200g", "asin": "B0F1LGRFCR" }
+      ]
     }
   ]
 }
