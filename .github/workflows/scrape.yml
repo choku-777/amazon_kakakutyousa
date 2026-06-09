@@ -46,7 +46,15 @@ jobs:
             echo "変更なし"
           else
             git commit -m "価格更新: $(date -u +%Y-%m-%d)"
-            git push
+            # 並行実行や開発中のpushと衝突しても確実に反映できるよう
+            # rebase してからpush、失敗時はリトライ
+            for i in 1 2 3 4 5; do
+              git pull --rebase --autostash origin "${GITHUB_REF_NAME}" || true
+              if git push origin "HEAD:${GITHUB_REF_NAME}"; then
+                echo "pushed"; break
+              fi
+              echo "push retry $i"; sleep $((RANDOM % 5 + 2))
+            done
           fi
 
       - name: Pages 用アーティファクトのアップロード
