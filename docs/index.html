@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Amazon 価格比較（馬刺し：自社 vs 競合）</title>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4"></script>
+<style>
+  * { box-sizing: border-box; }
+  body { font-family: -apple-system, "Segoe UI", "Hiragino Kaku Gothic ProN",
+         "Yu Gothic", Meiryo, sans-serif; margin: 0; background: #f4f6f9; color: #1f2937; }
+  .wrap { max-width: 900px; margin: 0 auto; padding: 24px 16px 64px; }
+  h1 { font-size: 1.4rem; margin: 0 0 4px; }
+  h2 { font-size: 1.05rem; margin: 0 0 12px; color: #374151; }
+  h3 { font-size: .95rem; margin: 0 0 8px; }
+  .updated { color: #6b7280; font-size: .85rem; margin-bottom: 20px; }
+  .card { background: #fff; border-radius: 12px; padding: 20px; margin-bottom: 20px;
+          box-shadow: 0 1px 3px rgba(0,0,0,.08); }
+  table { width: 100%; border-collapse: collapse; }
+  th, td { padding: 10px 8px; text-align: left; border-bottom: 1px solid #eef0f3; font-size: .92rem; }
+  th { font-size: .78rem; color: #6b7280; font-weight: 600; }
+  td.unit { font-size: 1.15rem; font-weight: 700; white-space: nowrap; }
+  td.price, td.diff { white-space: nowrap; }
+  .name a { color: #2563eb; text-decoration: none; }
+  .name a:hover { text-decoration: underline; }
+  .badge { color: #fff; padding: 2px 10px; border-radius: 999px; font-size: .8rem;
+           font-weight: 600; white-space: nowrap; }
+  .up { color: #dc2626; } .down { color: #059669; } .flat { color: #6b7280; }
+  .stale { color: #d97706; font-size: .72rem; }
+  .summary { font-size: 1.05rem; margin: 8px 0 0; }
+  .vargroup { margin-bottom: 18px; }
+  .vartable th, .vartable td { font-size: .85rem; }
+  footer { color: #9ca3af; font-size: .75rem; text-align: center; margin-top: 24px; line-height: 1.6; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>Amazon 価格比較（馬刺し：自社 vs 競合）</h1>
+  <p class="updated">最終更新: 未取得（1日1回自動更新） / 比較単位: 100g あたり単価</p>
+
+  <div class="card">
+    <h2>サマリー（100g 単価で比較）</h2>
+    <table>
+      <thead><tr><th>区分</th><th>商品</th><th>最安バリエーション</th><th>価格</th><th>100g単価</th><th>前回比</th></tr></thead>
+      <tbody><tr>
+        <td><span class="badge" style="background:#2563eb">自社</span></td>
+        <td class="name"><a href="https://www.amazon.co.jp/dp/B07QNKXR7X" target="_blank" rel="noopener">新鮮馬刺し プレミアム上赤身 300g 約50g×6P（約6人前）</a></td>
+        <td>—</td>
+        <td class="price">—</td>
+        <td class="unit">—</td>
+        <td class="diff">—</td>
+      </tr><tr>
+        <td><span class="badge" style="background:#dc2626">競合</span></td>
+        <td class="name"><a href="https://www.amazon.co.jp/dp/B0BQQWHZXC" target="_blank" rel="noopener">【桜馬】馬刺し 阿蘇牧場</a></td>
+        <td>—</td>
+        <td class="price">—</td>
+        <td class="unit">—</td>
+        <td class="diff">—</td>
+      </tr></tbody>
+    </table>
+    
+  </div>
+
+  <div class="card">
+    <h2>100g 単価の推移</h2>
+    <canvas id="chart" height="240"></canvas>
+  </div>
+
+  <div class="card">
+    <h2>バリエーション内訳</h2>
+    <p>データ未取得</p>
+  </div>
+
+  <footer>
+    価格・容量は Amazon (amazon.co.jp) から自動取得した参考値です。<br>
+    バリエーションにより内容量が異なるため、100g あたりの単価に換算して比較しています。<br>
+    実際の販売価格は各商品ページをご確認ください。
+  </footer>
+</div>
+
+<script>
+const C = {"labels": [], "datasets": [{"role": "自社", "color": "#2563eb", "data": []}, {"role": "競合", "color": "#dc2626", "data": []}]};
+new Chart(document.getElementById('chart'), {
+  type: 'line',
+  data: {
+    labels: C.labels,
+    datasets: C.datasets.map(d => ({
+      label: d.role,
+      data: d.data,
+      borderColor: d.color,
+      backgroundColor: d.color + '22',
+      spanGaps: true, tension: 0.2, pointRadius: 3,
+    })),
+  },
+  options: {
+    responsive: true,
+    plugins: { legend: { position: 'bottom' } },
+    scales: { y: { ticks: { callback: v => '￥' + v.toLocaleString() } } }
+  }
+});
+</script>
+</body>
+</html>

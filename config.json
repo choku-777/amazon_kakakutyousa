@@ -1,0 +1,23 @@
+{
+  "site": "co.jp",
+  "title": "Amazon 価格比較（馬刺し：自社 vs 競合）",
+  "unit_grams": 100,
+  "products": [
+    {
+      "role": "自社",
+      "name": "新鮮馬刺し プレミアム上赤身 300g 約50g×6P（約6人前）",
+      "url": "https://www.amazon.co.jp/dp/B07QNKXR7X",
+      "variations": [
+        { "asin": "B07QNKXR7X", "label": "300g（50g×6P）", "grams": 300 }
+      ]
+    },
+    {
+      "role": "競合",
+      "name": "【桜馬】馬刺し 阿蘇牧場",
+      "url": "https://www.amazon.co.jp/dp/B0BQQWHZXC",
+      "variations": [
+        { "asin": "B0BQQWHZXC", "label": "1000g（50g×20P）", "grams": 1000 }
+      ]
+    }
+  ]
+}
