@@ -6,13 +6,13 @@
       "自社": {
         "name": "新鮮馬刺し プレミアム上赤身 300g 約50g×6P（約6人前）",
         "url": "https://www.amazon.co.jp/dp/B07QNKXR7X",
-        "best_asin": null,
-        "best_unit_price": null,
+        "best_asin": "B07QNKXR7X",
+        "best_unit_price": 863.3,
         "variations": {
           "B07QNKXR7X": {
-            "price": null,
+            "price": 2590,
             "grams": 300,
-            "unit_price": null,
+            "unit_price": 863.3,
             "label": "300g（50g×6P）",
             "stale": false
           }
@@ -21,13 +21,13 @@
       "競合": {
         "name": "【桜馬】馬刺し 阿蘇牧場",
         "url": "https://www.amazon.co.jp/dp/B0BQQWHZXC",
-        "best_asin": null,
-        "best_unit_price": null,
+        "best_asin": "B0BQQWHZXC",
+        "best_unit_price": 549.0,
         "variations": {
           "B0BQQWHZXC": {
-            "price": null,
+            "price": 5490,
             "grams": 1000,
-            "unit_price": null,
+            "unit_price": 549.0,
             "label": "1000g（50g×20P）",
             "stale": false
           }
