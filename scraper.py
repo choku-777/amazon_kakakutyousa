@@ -1,18 +1,20 @@
 #!/usr/bin/env python3
 """Amazon 価格比較スクレイパー / HTML 生成スクリプト.
 
-config.json に定義した 2 商品（自社・競合）の Amazon 価格を、
-各商品のバリエーション（容量違い = 別 ASIN）ごとに取得し、
-「100g あたり単価（¥/100g）」に換算して同一容量ベースで比較する。
+config.json の各商品（自社・競合）の Amazon 商品ページから
+バリエーション（容量違い等）を自動検出し、各バリエーションの価格を取得する。
+config.json の "pairs" で「自社ASIN ↔ 競合ASIN」のペアを定義すると、
+そのペア同士で価格を直接比較する。
 取得結果は data/history.json に履歴として追記し、docs/index.html を生成する。
 
 使い方:
-    python scraper.py             # スクレイピング + HTML 生成
-    python scraper.py --html-only # 既存履歴から HTML だけ再生成（取得しない）
+    python scraper.py             # 取得 + HTML 生成
+    python scraper.py --html-only # 既存履歴から HTML だけ再生成
 
 環境変数（任意・本番でのブロック回避用）:
-    SCRAPER_PROXY    例: http://user:pass@host:port （全リクエストをこの proxy 経由に）
-    SCRAPERAPI_KEY   ScraperAPI のキー。設定すると https://api.scraperapi.com 経由で取得。
+    SCRAPERAPI_KEY   ScraperAPI のキー。設定すると api.scraperapi.com 経由で取得。
+    SCRAPERAPI_OPTS  ScraperAPI の追加パラメータ（例: "ultra_premium=true"）。
+    SCRAPER_PROXY    例: socks5h://user:pass@host:1080 / http://user:pass@host:port
 """
 
 from __future__ import annotations
@@ -52,13 +54,7 @@ def build_headers() -> dict:
         "image/avif,image/webp,*/*;q=0.8",
         "Accept-Language": "ja-JP,ja;q=0.9,en-US;q=0.8,en;q=0.7",
         "Accept-Encoding": "gzip, deflate, br",
-        "Cache-Control": "no-cache",
-        "Pragma": "no-cache",
         "Upgrade-Insecure-Requests": "1",
-        "Sec-Fetch-Dest": "document",
-        "Sec-Fetch-Mode": "navigate",
-        "Sec-Fetch-Site": "none",
-        "Sec-Fetch-User": "?1",
     }
 
 
@@ -82,16 +78,34 @@ def parse_price(text: str) -> int | None:
     return int(digits) if digits else None
 
 
-def request_url(asin: str, site: str) -> str:
+def parse_grams(text: str | None) -> int | None:
+    """'300g' や '1kg' や '50g×6' から総グラム数を推定する。"""
+    if not text:
+        return None
+    s = str(text).lower().replace(",", "").replace("×", "x").replace("✕", "x").replace("＊", "*")
+    # "50g x 6" のような掛け算表記
+    m = re.search(r"(\d+(?:\.\d+)?)\s*(kg|g)\s*[x\*]\s*(\d+)", s)
+    if m:
+        base = float(m.group(1)) * (1000 if m.group(2) == "kg" else 1)
+        return int(round(base * int(m.group(3))))
+    m = re.search(r"(\d+(?:\.\d+)?)\s*(kg|g)", s)
+    if m:
+        return int(round(float(m.group(1)) * (1000 if m.group(2) == "kg" else 1)))
+    return None
+
+
+def asin_from_url(url: str) -> str | None:
+    m = re.search(r"/(?:dp|gp/product|gp/aw/d)/([A-Z0-9]{10})", url)
+    return m.group(1) if m else None
+
+
+def dp_url(asin: str, site: str) -> str:
     return f"https://www.amazon.{site}/dp/{asin}"
 
 
 def apply_fetch_layer(url: str) -> tuple[str, dict | None]:
-    """proxy / ScraperAPI 設定に応じて、実リクエスト URL と proxies を返す。"""
     api_key = os.environ.get("SCRAPERAPI_KEY")
     if api_key:
-        # SCRAPERAPI_OPTS で追加パラメータを付与可能（例: "ultra_premium=true" や
-        # "premium=true&render=true"）。未設定なら標準リクエスト（1クレジット）。
         opts = os.environ.get("SCRAPERAPI_OPTS", "").strip()
         extra = f"&{opts}" if opts else ""
         target = (
@@ -106,20 +120,15 @@ def apply_fetch_layer(url: str) -> tuple[str, dict | None]:
 
 
 def fetch_html(url: str, retries: int = 4) -> tuple[str | None, str | None]:
-    """URL を取得して HTML 本文を返す。失敗時は (None, error)。"""
     session = requests.Session()
     last_err = None
     target, proxies = apply_fetch_layer(url)
     for attempt in range(1, retries + 1):
         try:
-            resp = session.get(
-                target, headers=build_headers(), timeout=40, proxies=proxies
-            )
+            resp = session.get(target, headers=build_headers(), timeout=60, proxies=proxies)
             if resp.status_code != 200:
                 last_err = f"HTTP {resp.status_code}"
-            elif "api-services-support@amazon.com" in resp.text or (
-                "validateCaptcha" in resp.text
-            ):
+            elif "api-services-support@amazon.com" in resp.text or "validateCaptcha" in resp.text:
                 last_err = "blocked (captcha)"
             else:
                 return resp.text, None
@@ -127,7 +136,7 @@ def fetch_html(url: str, retries: int = 4) -> tuple[str | None, str | None]:
             last_err = str(exc)
         if attempt < retries:
             wait = 2 ** attempt + random.uniform(0, 2)
-            print(f"    retry {attempt}/{retries} after {wait:.1f}s ({last_err})")
+            print(f"      retry {attempt}/{retries} after {wait:.1f}s ({last_err})")
             time.sleep(wait)
     return None, last_err
 
@@ -140,6 +149,45 @@ def extract_price(html: str) -> int | None:
         if price:
             return price
     return None
+
+
+def extract_title(html: str) -> str | None:
+    soup = BeautifulSoup(html, "lxml")
+    el = soup.select_one("#productTitle")
+    return el.get_text(strip=True) if el else None
+
+
+def detect_variations(html: str, main_asin: str | None) -> dict[str, str]:
+    """商品ページHTMLからバリエーションを検出し {asin: ラベル} を返す。
+
+    Amazon の埋め込み JSON "dimensionValuesDisplayData"（ASIN→表示ラベル配列）を
+    主に利用する。検出できない場合は main_asin のみを返す。
+    """
+    result: dict[str, str] = {}
+    # dimensionValuesDisplayData は {"ASIN":["300g"],"ASIN2":["600g",...]} 形式
+    for m in re.finditer(r'"dimensionValuesDisplayData"\s*:\s*(\{[^{}]+\})', html):
+        try:
+            data = json.loads(m.group(1))
+        except json.JSONDecodeError:
+            continue
+        for asin, labels in data.items():
+            if re.fullmatch(r"[A-Z0-9]{10}", asin):
+                if isinstance(labels, list):
+                    label = " / ".join(str(x) for x in labels)
+                else:
+                    label = str(labels)
+                result[asin] = label.strip()
+    # フォールバック: twister 内の data-asin を拾う（ラベルは付かない）
+    if not result:
+        for m in re.finditer(r'data-asin="([A-Z0-9]{10})"', html):
+            result.setdefault(m.group(1), "")
+    # 単一商品 or 検出失敗
+    if not result and main_asin:
+        result[main_asin] = ""
+    # main_asin が漏れていれば追加
+    if main_asin and main_asin not in result:
+        result[main_asin] = ""
+    return result
 
 
 def load_json(path: Path, default):
@@ -155,8 +203,7 @@ def save_json(path: Path, data) -> None:
         json.dump(data, f, ensure_ascii=False, indent=2)
 
 
-def last_known_unit_prices(history: list) -> dict[str, dict]:
-    """asin -> 最後に取得できた {price, grams, unit_price}。フォールバック用。"""
+def last_known_prices(history: list) -> dict[str, dict]:
     known: dict[str, dict] = {}
     for rec in history:
         for prod in rec.get("products", {}).values():
@@ -169,53 +216,59 @@ def last_known_unit_prices(history: list) -> dict[str, dict]:
 def scrape(config: dict, history: list) -> list:
     today = dt.date.today().isoformat()
     site = config.get("site", "co.jp")
-    unit_grams = config.get("unit_grams", 100)
-    fallback = last_known_unit_prices(history)
+    fallback = last_known_prices(history)
 
     products_out: dict[str, dict] = {}
     for product in config["products"]:
         role = product["role"]
-        print(f"取得中: [{role}] {product['name']}")
+        url = product["url"]
+        main_asin = asin_from_url(url)
+        print(f"取得中: [{role}] {product['name']}  (main={main_asin})")
+
+        main_html, err = fetch_html(url)
+        if main_html is None:
+            print(f"  メインページ取得失敗 ({err})")
+        title = extract_title(main_html) if main_html else None
+        var_map = detect_variations(main_html or "", main_asin)
+        print(f"  検出バリエーション数: {len(var_map)} -> {list(var_map.keys())}")
+
         variations_out: dict[str, dict] = {}
-        for var in product["variations"]:
-            asin = var["asin"]
-            grams = var["grams"]
-            url = request_url(asin, site)
-            print(f"  - {var['label']} ({asin})")
-            html, err = fetch_html(url)
-            price = extract_price(html) if html else None
+        for asin, label in var_map.items():
+            grams = parse_grams(label)
+            if grams is None and asin == main_asin:
+                grams = parse_grams(title)  # 単一商品はタイトルから推定
+            # 価格取得（main はダウンロード済みHTMLを再利用）
+            if asin == main_asin and main_html:
+                price = extract_price(main_html)
+                verr = None if price else "price not found"
+            else:
+                vhtml, verr = fetch_html(dp_url(asin, site))
+                price = extract_price(vhtml) if vhtml else None
+                if grams is None and vhtml:
+                    grams = parse_grams(extract_title(vhtml))
+            disp_label = label or (f"{grams}g" if grams else asin)
             if price is None:
-                err = err or "price not found"
                 prev = fallback.get(asin)
                 if prev:
-                    print(f"    -> 取得失敗 ({err}). 前回値: ￥{prev['price']:,}")
-                    variations_out[asin] = {**prev, "stale": True}
+                    print(f"    {disp_label} ({asin}) -> 失敗({verr}), 前回値 ￥{prev['price']:,}")
+                    variations_out[asin] = {**prev, "label": disp_label, "stale": True}
                 else:
-                    print(f"    -> 取得失敗 ({err}). 前回値なし")
+                    print(f"    {disp_label} ({asin}) -> 失敗({verr}), 前回値なし")
                     variations_out[asin] = {
-                        "price": None, "grams": grams, "unit_price": None,
-                        "label": var["label"], "stale": False,
+                        "label": disp_label, "grams": grams, "price": None, "stale": False,
                     }
-                continue
-            unit_price = round(price / grams * unit_grams, 1)
-            print(f"    -> ￥{price:,}  =  ￥{unit_price:,}/{unit_grams}g")
-            variations_out[asin] = {
-                "price": price, "grams": grams, "unit_price": unit_price,
-                "label": var["label"], "stale": False,
-            }
+            else:
+                print(f"    {disp_label} ({asin}) -> ￥{price:,}"
+                      + (f"  ({grams}g)" if grams else ""))
+                variations_out[asin] = {
+                    "label": disp_label, "grams": grams, "price": price, "stale": False,
+                }
 
-        # 代表 = 100g 単価が最安のバリエーション（最もお得な容量）
-        valid = {a: v for a, v in variations_out.items() if v.get("unit_price") is not None}
-        best_asin = min(valid, key=lambda a: valid[a]["unit_price"]) if valid else None
         products_out[role] = {
-            "name": product["name"],
-            "url": product["url"],
-            "best_asin": best_asin,
-            "best_unit_price": valid[best_asin]["unit_price"] if best_asin else None,
-            "variations": variations_out,
+            "name": product["name"], "url": url, "variations": variations_out,
         }
 
-    record = {"date": today, "unit_grams": unit_grams, "products": products_out}
+    record = {"date": today, "products": products_out}
     history = [r for r in history if r.get("date") != today]
     history.append(record)
     history.sort(key=lambda r: r["date"])
@@ -225,111 +278,90 @@ def scrape(config: dict, history: list) -> list:
 def fmt_yen(v) -> str:
     if v is None:
         return "—"
-    if isinstance(v, float) and not v.is_integer():
-        return f"￥{v:,.1f}"
     return f"￥{int(v):,}"
 
 
-def diff_html(cur, prev) -> str:
-    if cur is None or prev is None:
+def diff_html(self_p, comp_p) -> str:
+    if self_p is None or comp_p is None:
         return "—"
-    d = round(cur - prev, 1)
+    d = self_p - comp_p
     if d > 0:
-        return f"<span class='up'>▲ +{fmt_yen(d)}</span>"
+        return f"<span class='up'>自社が ￥{d:,} 高い</span>"
     if d < 0:
-        return f"<span class='down'>▼ -{fmt_yen(abs(d))}</span>"
-    return "<span class='flat'>±0</span>"
+        return f"<span class='down'>自社が ￥{abs(d):,} 安い</span>"
+    return "<span class='flat'>同額</span>"
+
+
+def find_var(products: dict, role: str, asin: str) -> dict:
+    return products.get(role, {}).get("variations", {}).get(asin, {})
 
 
 def render_html(config: dict, history: list) -> str:
     title = config.get("title", "Amazon 価格比較")
-    unit_grams = config.get("unit_grams", 100)
+    pairs = config.get("pairs", [])
+    roles = [p["role"] for p in config["products"]]
+    self_role = roles[0] if roles else "自社"
+    comp_role = roles[1] if len(roles) > 1 else "競合"
     updated = history[-1]["date"] if history else "未取得"
     latest = history[-1]["products"] if history else {}
-    prev = history[-2]["products"] if len(history) >= 2 else {}
 
-    colors = ["#2563eb", "#dc2626"]
-    roles = [p["role"] for p in config["products"]]
-    meta = {p["role"]: p for p in config["products"]}
-
-    # メインの比較テーブル（100g 単価ベース）
-    rows = []
-    for i, role in enumerate(roles):
-        cur = latest.get(role, {})
-        pre = prev.get(role, {})
-        color = colors[i % len(colors)]
-        best_asin = cur.get("best_asin")
-        best_var = cur.get("variations", {}).get(best_asin, {}) if best_asin else {}
-        unit = cur.get("best_unit_price")
-        pre_unit = pre.get("best_unit_price")
-        price = best_var.get("price")
-        label = best_var.get("label", "—")
-        stale = best_var.get("stale")
-        unit_disp = fmt_yen(unit) + (" <span class='stale'>(前回値)</span>" if stale else "")
-        rows.append(f"""<tr>
-        <td><span class="badge" style="background:{color}">{role}</span></td>
-        <td class="name"><a href="{meta[role]['url']}" target="_blank" rel="noopener">{meta[role]['name']}</a></td>
-        <td>{label}</td>
-        <td class="price">{fmt_yen(price)}</td>
-        <td class="unit">{unit_disp}</td>
-        <td class="diff">{diff_html(unit, pre_unit)}</td>
+    # ペア比較表
+    pair_rows = []
+    for pair in pairs:
+        sv = find_var(latest, self_role, pair.get("self", ""))
+        cv = find_var(latest, comp_role, pair.get("competitor", ""))
+        sp, cp = sv.get("price"), cv.get("price")
+        s_stale = " <span class='stale'>(前回値)</span>" if sv.get("stale") else ""
+        c_stale = " <span class='stale'>(前回値)</span>" if cv.get("stale") else ""
+        pair_rows.append(f"""<tr>
+        <td class="pairlabel">{pair.get('label','')}</td>
+        <td>{sv.get('label', pair.get('self',''))}<br><span class="asin">{pair.get('self','')}</span></td>
+        <td class="price">{fmt_yen(sp)}{s_stale}</td>
+        <td>{cv.get('label', pair.get('competitor',''))}<br><span class="asin">{pair.get('competitor','')}</span></td>
+        <td class="price">{fmt_yen(cp)}{c_stale}</td>
+        <td class="diff">{diff_html(sp, cp)}</td>
       </tr>""")
+    pair_table = (f"""<table>
+      <thead><tr><th>ペア</th><th>{self_role} バリ</th><th>{self_role} 価格</th>
+      <th>{comp_role} バリ</th><th>{comp_role} 価格</th><th>判定</th></tr></thead>
+      <tbody>{''.join(pair_rows)}</tbody>
+    </table>""" if pair_rows else "<p>ペア未設定です。config.json の \"pairs\" に ASIN を設定してください。</p>")
 
-    # 単価差サマリー
-    summary = ""
-    if len(roles) >= 2:
-        a = latest.get(roles[0], {}).get("best_unit_price")
-        b = latest.get(roles[1], {}).get("best_unit_price")
-        if a is not None and b is not None:
-            d = round(a - b, 1)
-            if d > 0:
-                summary = (f"<p class='summary'>{unit_grams}g 単価で自社は競合より "
-                           f"<strong class='up'>{fmt_yen(d)} 高い</strong></p>")
-            elif d < 0:
-                summary = (f"<p class='summary'>{unit_grams}g 単価で自社は競合より "
-                           f"<strong class='down'>{fmt_yen(abs(d))} 安い</strong></p>")
-            else:
-                summary = "<p class='summary'>自社と競合は<strong>同単価</strong></p>"
-
-    # バリエーション内訳
+    # 全バリエーション一覧（ペア設定の材料）
     var_blocks = []
     for i, role in enumerate(roles):
         cur = latest.get(role, {})
-        color = colors[i % len(colors)]
         vrows = []
         for asin, v in cur.get("variations", {}).items():
-            best = " ★最安" if asin == cur.get("best_asin") else ""
             vrows.append(f"""<tr>
-          <td>{v.get('label','—')}{best}</td>
-          <td>{v.get('grams','—')}g</td>
-          <td>{fmt_yen(v.get('price'))}</td>
-          <td>{fmt_yen(v.get('unit_price'))}</td>
+          <td>{v.get('label') or '—'}</td>
+          <td class="asin">{asin}</td>
+          <td>{(str(v.get('grams'))+'g') if v.get('grams') else '—'}</td>
+          <td class="price">{fmt_yen(v.get('price'))}</td>
         </tr>""")
-        if vrows:
-            var_blocks.append(f"""<div class="vargroup">
+        color = "#2563eb" if i == 0 else "#dc2626"
+        var_blocks.append(f"""<div class="vargroup">
         <h3><span class="badge" style="background:{color}">{role}</span> {cur.get('name','')}</h3>
         <table class="vartable">
-          <thead><tr><th>バリエーション</th><th>容量</th><th>価格</th><th>{unit_grams}g単価</th></tr></thead>
-          <tbody>{''.join(vrows)}</tbody>
+          <thead><tr><th>バリエーション</th><th>ASIN</th><th>容量</th><th>価格</th></tr></thead>
+          <tbody>{''.join(vrows) if vrows else '<tr><td colspan=4>データ未取得</td></tr>'}</tbody>
         </table>
       </div>""")
 
-    # チャート用データ（100g 単価の推移）
-    chart = {
-        "labels": [r["date"] for r in history],
-        "datasets": [
-            {
-                "role": role,
-                "color": colors[i % len(colors)],
-                "data": [
-                    r["products"].get(role, {}).get("best_unit_price")
-                    for r in history
-                ],
-            }
-            for i, role in enumerate(roles)
-        ],
-    }
-    data_json = json.dumps(chart, ensure_ascii=False)
+    # チャート: ペア別 価格差（自社 - 競合）の推移
+    labels = [r["date"] for r in history]
+    colors = ["#2563eb", "#dc2626", "#059669", "#d97706", "#7c3aed", "#0891b2"]
+    datasets = []
+    for idx, pair in enumerate(pairs):
+        series = []
+        for r in history:
+            sv = find_var(r["products"], self_role, pair.get("self", ""))
+            cv = find_var(r["products"], comp_role, pair.get("competitor", ""))
+            sp, cp = sv.get("price"), cv.get("price")
+            series.append(sp - cp if (sp is not None and cp is not None) else None)
+        datasets.append({"label": pair.get("label", f"ペア{idx+1}"),
+                         "color": colors[idx % len(colors)], "data": series})
+    chart_data = json.dumps({"labels": labels, "datasets": datasets}, ensure_ascii=False)
 
     return f"""<!DOCTYPE html>
 <html lang="ja">
@@ -342,7 +374,7 @@ def render_html(config: dict, history: list) -> str:
   * {{ box-sizing: border-box; }}
   body {{ font-family: -apple-system, "Segoe UI", "Hiragino Kaku Gothic ProN",
          "Yu Gothic", Meiryo, sans-serif; margin: 0; background: #f4f6f9; color: #1f2937; }}
-  .wrap {{ max-width: 900px; margin: 0 auto; padding: 24px 16px 64px; }}
+  .wrap {{ max-width: 980px; margin: 0 auto; padding: 24px 16px 64px; }}
   h1 {{ font-size: 1.4rem; margin: 0 0 4px; }}
   h2 {{ font-size: 1.05rem; margin: 0 0 12px; color: #374151; }}
   h3 {{ font-size: .95rem; margin: 0 0 8px; }}
@@ -350,70 +382,66 @@ def render_html(config: dict, history: list) -> str:
   .card {{ background: #fff; border-radius: 12px; padding: 20px; margin-bottom: 20px;
           box-shadow: 0 1px 3px rgba(0,0,0,.08); }}
   table {{ width: 100%; border-collapse: collapse; }}
-  th, td {{ padding: 10px 8px; text-align: left; border-bottom: 1px solid #eef0f3; font-size: .92rem; }}
+  th, td {{ padding: 10px 8px; text-align: left; border-bottom: 1px solid #eef0f3; font-size: .9rem; }}
   th {{ font-size: .78rem; color: #6b7280; font-weight: 600; }}
-  td.unit {{ font-size: 1.15rem; font-weight: 700; white-space: nowrap; }}
-  td.price, td.diff {{ white-space: nowrap; }}
-  .name a {{ color: #2563eb; text-decoration: none; }}
-  .name a:hover {{ text-decoration: underline; }}
+  td.price {{ font-weight: 700; white-space: nowrap; }}
+  td.pairlabel {{ font-weight: 600; }}
+  td.diff {{ white-space: nowrap; }}
+  .asin {{ color: #9ca3af; font-size: .75rem; }}
   .badge {{ color: #fff; padding: 2px 10px; border-radius: 999px; font-size: .8rem;
            font-weight: 600; white-space: nowrap; }}
   .up {{ color: #dc2626; }} .down {{ color: #059669; }} .flat {{ color: #6b7280; }}
   .stale {{ color: #d97706; font-size: .72rem; }}
-  .summary {{ font-size: 1.05rem; margin: 8px 0 0; }}
   .vargroup {{ margin-bottom: 18px; }}
-  .vartable th, .vartable td {{ font-size: .85rem; }}
   footer {{ color: #9ca3af; font-size: .75rem; text-align: center; margin-top: 24px; line-height: 1.6; }}
 </style>
 </head>
 <body>
 <div class="wrap">
   <h1>{title}</h1>
-  <p class="updated">最終更新: {updated}（1日1回自動更新） / 比較単位: {unit_grams}g あたり単価</p>
+  <p class="updated">最終更新: {updated}（1日1回自動更新）</p>
 
   <div class="card">
-    <h2>サマリー（{unit_grams}g 単価で比較）</h2>
-    <table>
-      <thead><tr><th>区分</th><th>商品</th><th>最安バリエーション</th><th>価格</th><th>{unit_grams}g単価</th><th>前回比</th></tr></thead>
-      <tbody>{''.join(rows)}</tbody>
-    </table>
-    {summary}
+    <h2>ペア比較（バリエーション同士）</h2>
+    {pair_table}
   </div>
 
   <div class="card">
-    <h2>{unit_grams}g 単価の推移</h2>
+    <h2>ペア別 価格差の推移（自社 − 競合）</h2>
     <canvas id="chart" height="240"></canvas>
   </div>
 
   <div class="card">
-    <h2>バリエーション内訳</h2>
-    {''.join(var_blocks) if var_blocks else '<p>データ未取得</p>'}
+    <h2>全バリエーション一覧</h2>
+    <p class="updated">※ ここのASINを config.json の "pairs" に設定すると、上のペア比較に反映されます。</p>
+    {''.join(var_blocks)}
   </div>
 
   <footer>
-    価格・容量は Amazon (amazon.co.jp) から自動取得した参考値です。<br>
-    バリエーションにより内容量が異なるため、{unit_grams}g あたりの単価に換算して比較しています。<br>
+    価格・バリエーションは Amazon (amazon.co.jp) から自動取得した参考値です。<br>
     実際の販売価格は各商品ページをご確認ください。
   </footer>
 </div>
 
 <script>
-const C = {data_json};
+const C = {chart_data};
 new Chart(document.getElementById('chart'), {{
   type: 'line',
   data: {{
     labels: C.labels,
     datasets: C.datasets.map(d => ({{
-      label: d.role,
-      data: d.data,
-      borderColor: d.color,
-      backgroundColor: d.color + '22',
+      label: d.label, data: d.data,
+      borderColor: d.color, backgroundColor: d.color + '22',
       spanGaps: true, tension: 0.2, pointRadius: 3,
     }})),
   }},
   options: {{
     responsive: true,
-    plugins: {{ legend: {{ position: 'bottom' }} }},
+    plugins: {{
+      legend: {{ position: 'bottom' }},
+      tooltip: {{ callbacks: {{ label: c => c.dataset.label + ': ' +
+        (c.parsed.y > 0 ? '自社+￥' : '自社￥') + c.parsed.y.toLocaleString() }} }}
+    }},
     scales: {{ y: {{ ticks: {{ callback: v => '￥' + v.toLocaleString() }} }} }}
   }}
 }});
