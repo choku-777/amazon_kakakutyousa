@@ -157,14 +157,19 @@ def extract_title(html: str) -> str | None:
     return el.get_text(strip=True) if el else None
 
 
+MAX_VARIATIONS = 15
+
+
 def detect_variations(html: str, main_asin: str | None) -> dict[str, str]:
     """商品ページHTMLからバリエーションを検出し {asin: ラベル} を返す。
 
-    Amazon の埋め込み JSON "dimensionValuesDisplayData"（ASIN→表示ラベル配列）を
-    主に利用する。検出できない場合は main_asin のみを返す。
+    1) 埋め込み JSON "dimensionValuesDisplayData"（ASIN→表示ラベル配列）を最優先。
+    2) 無ければ twister（バリエーション選択 UI）コンテナ内の data-asin のみを拾う。
+       ※ ページ全体の data-asin（関連商品・広告等）は拾わない。
+    3) それも無ければ単一商品として main_asin のみ。
     """
     result: dict[str, str] = {}
-    # dimensionValuesDisplayData は {"ASIN":["300g"],"ASIN2":["600g",...]} 形式
+    # 1. dimensionValuesDisplayData は {"ASIN":["300g"],"ASIN2":["600g",...]} 形式
     for m in re.finditer(r'"dimensionValuesDisplayData"\s*:\s*(\{[^{}]+\})', html):
         try:
             data = json.loads(m.group(1))
@@ -172,21 +177,38 @@ def detect_variations(html: str, main_asin: str | None) -> dict[str, str]:
             continue
         for asin, labels in data.items():
             if re.fullmatch(r"[A-Z0-9]{10}", asin):
-                if isinstance(labels, list):
-                    label = " / ".join(str(x) for x in labels)
-                else:
-                    label = str(labels)
+                label = " / ".join(str(x) for x in labels) if isinstance(labels, list) else str(labels)
                 result[asin] = label.strip()
-    # フォールバック: twister 内の data-asin を拾う（ラベルは付かない）
+
+    # 2. twister コンテナ内の data-asin のみ（ページ全体は走査しない）
     if not result:
-        for m in re.finditer(r'data-asin="([A-Z0-9]{10})"', html):
-            result.setdefault(m.group(1), "")
-    # 単一商品 or 検出失敗
-    if not result and main_asin:
-        result[main_asin] = ""
-    # main_asin が漏れていれば追加
+        soup = BeautifulSoup(html, "lxml")
+        containers = soup.select(
+            "#twister, #twisterContainer, #inline-twister-row, "
+            "[id*='inline-twister'], #variation_size_name, #variation_style_name, "
+            "form#twister-plus-inline-twister, #tp-inline-twister-dim-values-container"
+        )
+        for c in containers:
+            for el in c.select("[data-asin], [data-defaultasin], [asin]"):
+                a = el.get("data-asin") or el.get("data-defaultasin") or el.get("asin")
+                if a and re.fullmatch(r"[A-Z0-9]{10}", a):
+                    label = (el.get("title") or el.get("aria-label")
+                             or el.get_text(" ", strip=True) or "")[:40]
+                    result.setdefault(a, label.strip())
+
+    # 3. 単一商品 or 検出失敗 → main_asin のみ
     if main_asin and main_asin not in result:
         result[main_asin] = ""
+    # 安全弁: 拾いすぎた場合は main_asin を含めて上限まで
+    if len(result) > MAX_VARIATIONS:
+        kept = {}
+        if main_asin and main_asin in result:
+            kept[main_asin] = result[main_asin]
+        for a, lbl in result.items():
+            if len(kept) >= MAX_VARIATIONS:
+                break
+            kept[a] = lbl
+        result = kept
     return result
 
 
