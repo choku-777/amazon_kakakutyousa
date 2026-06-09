@@ -90,9 +90,13 @@ def apply_fetch_layer(url: str) -> tuple[str, dict | None]:
     """proxy / ScraperAPI 設定に応じて、実リクエスト URL と proxies を返す。"""
     api_key = os.environ.get("SCRAPERAPI_KEY")
     if api_key:
+        # SCRAPERAPI_OPTS で追加パラメータを付与可能（例: "ultra_premium=true" や
+        # "premium=true&render=true"）。未設定なら標準リクエスト（1クレジット）。
+        opts = os.environ.get("SCRAPERAPI_OPTS", "").strip()
+        extra = f"&{opts}" if opts else ""
         target = (
             "https://api.scraperapi.com/?api_key="
-            f"{api_key}&country_code=jp&url={quote(url, safe='')}"
+            f"{api_key}&country_code=jp{extra}&url={quote(url, safe='')}"
         )
         return target, None
     proxy = os.environ.get("SCRAPER_PROXY")

@@ -66,6 +66,7 @@ Amazon は **データセンター IP（GitHub Actions のサーバー）から�
 | 方法 | 設定（リポジトリ Secrets） | 備考 |
 |------|---------------------------|------|
 | ScraperAPI 等の scraping API | `SCRAPERAPI_KEY` | 推奨。安定。無料枠あり |
+| ↑ の取得レベル調整（任意） | `SCRAPERAPI_OPTS` | 例: `ultra_premium=true`。標準で弾かれる時のみ設定 |
 | HTTP プロキシ（住宅IP等） | `SCRAPER_PROXY=http://user:pass@host:port` | プロキシ業者契約が必要 |
 | SOCKS5 プロキシ（NordVPN等） | `SCRAPER_PROXY=socks5h://user:pass@host:1080` | 下記の注意参照 |
 | 何もしない | — | ブロックされやすい。取得失敗時は前回値を表示 |

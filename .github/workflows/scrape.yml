@@ -32,6 +32,7 @@ jobs:
         env:
           # 任意: Amazon のブロック回避用。リポジトリ Secrets に設定すると有効化。
           SCRAPERAPI_KEY: ${{ secrets.SCRAPERAPI_KEY }}
+          SCRAPERAPI_OPTS: ${{ secrets.SCRAPERAPI_OPTS }}
           SCRAPER_PROXY: ${{ secrets.SCRAPER_PROXY }}
         run: python scraper.py
 
