@@ -28,7 +28,27 @@
   .up { color: #dc2626; } .down { color: #059669; } .flat { color: #6b7280; }
   .stale { color: #d97706; font-size: .72rem; }
   .charttitle { font-size: .85rem; color: #6b7280; font-weight: 600; margin: 16px 0 6px; }
+  td.name, .name, .selfbox { overflow-wrap: anywhere; }
   footer { color: #9ca3af; font-size: .75rem; text-align: center; margin-top: 24px; line-height: 1.6; }
+
+  /* スマホ（狭幅）対応 */
+  @media (max-width: 600px) {
+    .wrap { padding: 16px 10px 48px; }
+    h1 { font-size: 1.2rem; }
+    h2 { font-size: 1rem; }
+    .card { padding: 14px; }
+    .selfbox { flex-direction: column; align-items: flex-start; gap: 4px; }
+    .bigprice { margin-left: 0; font-size: 1.25rem; }
+    table thead { display: none; }
+    table, tbody, tr, td { display: block; width: 100%; }
+    tr { border: 1px solid #eef0f3; border-radius: 8px; padding: 8px 10px; margin-bottom: 10px; }
+    td { border: none; padding: 4px 0; display: flex; justify-content: space-between;
+         align-items: baseline; gap: 12px; }
+    td::before { content: attr(data-label); color: #6b7280; font-size: .72rem;
+                 font-weight: 600; flex: 0 0 auto; }
+    td.price, td.diff { white-space: normal; text-align: right; }
+    td[data-label="競合"] { flex-direction: column; align-items: flex-start; }
+  }
 </style>
 </head>
 <body>
@@ -47,13 +67,13 @@
         <table>
           <thead><tr><th>競合</th><th>価格</th><th>自社との比較</th></tr></thead>
           <tbody><tr>
-          <td>桜馬 馬刺し 50g×20（通常）（1000g）<br><span class="asin">B0BQQWHZXC</span></td>
-          <td class="price">￥5,490</td>
-          <td class="diff"><span class='up'>自社が ￥90 高い</span></td>
+          <td data-label="競合">桜馬 馬刺し 50g×20（通常）（1000g）<br><span class="asin">B0BQQWHZXC</span></td>
+          <td class="price" data-label="価格">￥5,490</td>
+          <td class="diff" data-label="比較"><span class='up'>自社が ￥90 高い</span></td>
         </tr><tr>
-          <td>桜馬 馬刺し 50g×20（節約便）（1000g）<br><span class="asin">B0H1PLJT3R</span></td>
-          <td class="price">￥5,290 <span class='stale'>(前回値)</span></td>
-          <td class="diff"><span class='up'>自社が ￥290 高い</span></td>
+          <td data-label="競合">桜馬 馬刺し 50g×20（節約便）（1000g）<br><span class="asin">B0H1PLJT3R</span></td>
+          <td class="price" data-label="価格">￥5,290 <span class='stale'>(前回値)</span></td>
+          <td class="diff" data-label="比較"><span class='up'>自社が ￥290 高い</span></td>
         </tr></tbody>
         </table>
         <div class="charttitle">価格推移</div>
@@ -69,13 +89,13 @@
         <table>
           <thead><tr><th>競合</th><th>価格</th><th>自社との比較</th></tr></thead>
           <tbody><tr>
-          <td>桜馬 馬刺し 500g（通常）（500g）<br><span class="asin">B0BQQ3WC4P</span></td>
-          <td class="price">￥3,390</td>
-          <td class="diff"><span class='down'>自社が ￥150 安い</span></td>
+          <td data-label="競合">桜馬 馬刺し 500g（通常）（500g）<br><span class="asin">B0BQQ3WC4P</span></td>
+          <td class="price" data-label="価格">￥3,390</td>
+          <td class="diff" data-label="比較"><span class='down'>自社が ￥150 安い</span></td>
         </tr><tr>
-          <td>桜馬 馬刺し 500g（節約便）（500g）<br><span class="asin">B0GS1GQ86G</span></td>
-          <td class="price">￥3,190</td>
-          <td class="diff"><span class='up'>自社が ￥50 高い</span></td>
+          <td data-label="競合">桜馬 馬刺し 500g（節約便）（500g）<br><span class="asin">B0GS1GQ86G</span></td>
+          <td class="price" data-label="価格">￥3,190</td>
+          <td class="diff" data-label="比較"><span class='up'>自社が ￥50 高い</span></td>
         </tr></tbody>
         </table>
         <div class="charttitle">価格推移</div>
@@ -91,9 +111,9 @@
         <table>
           <thead><tr><th>競合</th><th>価格</th><th>自社との比較</th></tr></thead>
           <tbody><tr>
-          <td>桜馬 馬刺し 300g（300g）<br><span class="asin">B0BPHM8BBG</span></td>
-          <td class="price">￥2,750</td>
-          <td class="diff"><span class='down'>自社が ￥160 安い</span></td>
+          <td data-label="競合">桜馬 馬刺し 300g（300g）<br><span class="asin">B0BPHM8BBG</span></td>
+          <td class="price" data-label="価格">￥2,750</td>
+          <td class="diff" data-label="比較"><span class='down'>自社が ￥160 安い</span></td>
         </tr></tbody>
         </table>
         <div class="charttitle">価格推移</div>
@@ -109,9 +129,9 @@
         <table>
           <thead><tr><th>競合</th><th>価格</th><th>自社との比較</th></tr></thead>
           <tbody><tr>
-          <td>桜馬 馬刺し 200g（200g）<br><span class="asin">B0F1LGRFCR</span></td>
-          <td class="price">￥2,280</td>
-          <td class="diff"><span class='down'>自社が ￥20 安い</span></td>
+          <td data-label="競合">桜馬 馬刺し 200g（200g）<br><span class="asin">B0F1LGRFCR</span></td>
+          <td class="price" data-label="価格">￥2,280</td>
+          <td class="diff" data-label="比較"><span class='down'>自社が ￥20 安い</span></td>
         </tr></tbody>
         </table>
         <div class="charttitle">価格推移</div>

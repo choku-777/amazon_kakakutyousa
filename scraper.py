@@ -246,9 +246,9 @@ def render_html(config: dict, history: list) -> str:
             c_stale = " <span class='stale'>(前回値)</span>" if comp.get("stale") else ""
             c_grams = f"（{comp['grams']}g）" if comp.get("grams") else ""
             comp_rows.append(f"""<tr>
-          <td>{comp.get('name', comp_cfg.get('name',''))}{c_grams}<br><span class="asin">{casin}</span></td>
-          <td class="price">{fmt_yen(comp.get('price'))}{c_stale}</td>
-          <td class="diff">{diff_html(s.get('price'), comp.get('price'))}</td>
+          <td data-label="競合">{comp.get('name', comp_cfg.get('name',''))}{c_grams}<br><span class="asin">{casin}</span></td>
+          <td class="price" data-label="価格">{fmt_yen(comp.get('price'))}{c_stale}</td>
+          <td class="diff" data-label="比較">{diff_html(s.get('price'), comp.get('price'))}</td>
         </tr>""")
 
         # このペアの価格推移データ（自社 + 各競合の実額ライン）
@@ -314,7 +314,27 @@ def render_html(config: dict, history: list) -> str:
   .up {{ color: #dc2626; }} .down {{ color: #059669; }} .flat {{ color: #6b7280; }}
   .stale {{ color: #d97706; font-size: .72rem; }}
   .charttitle {{ font-size: .85rem; color: #6b7280; font-weight: 600; margin: 16px 0 6px; }}
+  td.name, .name, .selfbox {{ overflow-wrap: anywhere; }}
   footer {{ color: #9ca3af; font-size: .75rem; text-align: center; margin-top: 24px; line-height: 1.6; }}
+
+  /* スマホ（狭幅）対応 */
+  @media (max-width: 600px) {{
+    .wrap {{ padding: 16px 10px 48px; }}
+    h1 {{ font-size: 1.2rem; }}
+    h2 {{ font-size: 1rem; }}
+    .card {{ padding: 14px; }}
+    .selfbox {{ flex-direction: column; align-items: flex-start; gap: 4px; }}
+    .bigprice {{ margin-left: 0; font-size: 1.25rem; }}
+    table thead {{ display: none; }}
+    table, tbody, tr, td {{ display: block; width: 100%; }}
+    tr {{ border: 1px solid #eef0f3; border-radius: 8px; padding: 8px 10px; margin-bottom: 10px; }}
+    td {{ border: none; padding: 4px 0; display: flex; justify-content: space-between;
+         align-items: baseline; gap: 12px; }}
+    td::before {{ content: attr(data-label); color: #6b7280; font-size: .72rem;
+                 font-weight: 600; flex: 0 0 auto; }}
+    td.price, td.diff {{ white-space: normal; text-align: right; }}
+    td[data-label="競合"] {{ flex-direction: column; align-items: flex-start; }}
+  }}
 </style>
 </head>
 <body>
