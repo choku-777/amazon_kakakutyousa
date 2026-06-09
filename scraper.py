@@ -119,13 +119,13 @@ def apply_fetch_layer(url: str) -> tuple[str, dict | None]:
     return url, None
 
 
-def fetch_html(url: str, retries: int = 4) -> tuple[str | None, str | None]:
+def fetch_html(url: str, retries: int = 3, timeout: int = 30) -> tuple[str | None, str | None]:
     session = requests.Session()
     last_err = None
     target, proxies = apply_fetch_layer(url)
     for attempt in range(1, retries + 1):
         try:
-            resp = session.get(target, headers=build_headers(), timeout=60, proxies=proxies)
+            resp = session.get(target, headers=build_headers(), timeout=timeout, proxies=proxies)
             if resp.status_code != 200:
                 last_err = f"HTTP {resp.status_code}"
             elif "api-services-support@amazon.com" in resp.text or "validateCaptcha" in resp.text:
@@ -264,7 +264,8 @@ def scrape(config: dict, history: list) -> list:
                 price = extract_price(main_html)
                 verr = None if price else "price not found"
             else:
-                vhtml, verr = fetch_html(dp_url(asin, site))
+                # バリエーションページは失敗の重なりを避けるためリトライ少なめ
+                vhtml, verr = fetch_html(dp_url(asin, site), retries=2, timeout=25)
                 price = extract_price(vhtml) if vhtml else None
                 if grams is None and vhtml:
                     grams = parse_grams(extract_title(vhtml))

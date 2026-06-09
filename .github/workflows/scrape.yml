@@ -30,6 +30,7 @@ jobs:
 
       - name: スクレイピング & HTML 生成
         env:
+          PYTHONUNBUFFERED: "1"   # ログをリアルタイム出力（進捗確認用）
           # 任意: Amazon のブロック回避用。リポジトリ Secrets に設定すると有効化。
           SCRAPERAPI_KEY: ${{ secrets.SCRAPERAPI_KEY }}
           SCRAPERAPI_OPTS: ${{ secrets.SCRAPERAPI_OPTS }}
