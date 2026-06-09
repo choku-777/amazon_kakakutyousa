@@ -9,90 +9,48 @@
   * { box-sizing: border-box; }
   body { font-family: -apple-system, "Segoe UI", "Hiragino Kaku Gothic ProN",
          "Yu Gothic", Meiryo, sans-serif; margin: 0; background: #f4f6f9; color: #1f2937; }
-  .wrap { max-width: 980px; margin: 0 auto; padding: 24px 16px 64px; }
+  .wrap { max-width: 920px; margin: 0 auto; padding: 24px 16px 64px; }
   h1 { font-size: 1.4rem; margin: 0 0 4px; }
-  h2 { font-size: 1.05rem; margin: 0 0 12px; color: #374151; }
-  h3 { font-size: .95rem; margin: 0 0 8px; }
+  h2 { font-size: 1.1rem; margin: 0 0 14px; color: #374151; }
   .updated { color: #6b7280; font-size: .85rem; margin-bottom: 20px; }
   .card { background: #fff; border-radius: 12px; padding: 20px; margin-bottom: 20px;
           box-shadow: 0 1px 3px rgba(0,0,0,.08); }
+  .selfbox { background: #eff6ff; border-radius: 8px; padding: 12px 14px; margin-bottom: 14px;
+             display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+  .bigprice { margin-left: auto; font-size: 1.3rem; font-weight: 800; white-space: nowrap; }
   table { width: 100%; border-collapse: collapse; }
-  th, td { padding: 10px 8px; text-align: left; border-bottom: 1px solid #eef0f3; font-size: .9rem; }
+  th, td { padding: 10px 8px; text-align: left; border-bottom: 1px solid #eef0f3; font-size: .92rem; }
   th { font-size: .78rem; color: #6b7280; font-weight: 600; }
   td.price { font-weight: 700; white-space: nowrap; }
-  td.pairlabel { font-weight: 600; }
   td.diff { white-space: nowrap; }
   .asin { color: #9ca3af; font-size: .75rem; }
-  .badge { color: #fff; padding: 2px 10px; border-radius: 999px; font-size: .8rem;
-           font-weight: 600; white-space: nowrap; }
+  .badge { color: #fff; padding: 2px 10px; border-radius: 999px; font-size: .8rem; font-weight: 600; }
   .up { color: #dc2626; } .down { color: #059669; } .flat { color: #6b7280; }
   .stale { color: #d97706; font-size: .72rem; }
-  .vargroup { margin-bottom: 18px; }
   footer { color: #9ca3af; font-size: .75rem; text-align: center; margin-top: 24px; line-height: 1.6; }
 </style>
 </head>
 <body>
 <div class="wrap">
   <h1>Amazon 価格比較（馬刺し：自社 vs 競合）</h1>
-  <p class="updated">最終更新: 2026-06-09（1日1回自動更新）</p>
+  <p class="updated">最終更新: 未取得（1日1回自動更新）</p>
+
+  <div class="card"><p>データ未取得</p></div>
 
   <div class="card">
-    <h2>ペア比較（バリエーション同士）</h2>
-    <table>
-      <thead><tr><th>ペア</th><th>自社 バリ</th><th>自社 価格</th>
-      <th>競合 バリ</th><th>競合 価格</th><th>判定</th></tr></thead>
-      <tbody><tr>
-        <td class="pairlabel">基本ペア</td>
-        <td>300g（50g×6P）<br><span class="asin">B07QNKXR7X</span></td>
-        <td class="price">￥2,590</td>
-        <td>1000g（50g×20P）<br><span class="asin">B0BQQWHZXC</span></td>
-        <td class="price">￥5,490</td>
-        <td class="diff"><span class='down'>自社が ￥2,900 安い</span></td>
-      </tr></tbody>
-    </table>
-  </div>
-
-  <div class="card">
-    <h2>ペア別 価格差の推移（自社 − 競合）</h2>
+    <h2>価格差の推移（自社 − 競合）</h2>
     <canvas id="chart" height="240"></canvas>
-  </div>
-
-  <div class="card">
-    <h2>全バリエーション一覧</h2>
-    <p class="updated">※ ここのASINを config.json の "pairs" に設定すると、上のペア比較に反映されます。</p>
-    <div class="vargroup">
-        <h3><span class="badge" style="background:#2563eb">自社</span> 新鮮馬刺し プレミアム上赤身 300g 約50g×6P（約6人前）</h3>
-        <table class="vartable">
-          <thead><tr><th>バリエーション</th><th>ASIN</th><th>容量</th><th>価格</th></tr></thead>
-          <tbody><tr>
-          <td>300g（50g×6P）</td>
-          <td class="asin">B07QNKXR7X</td>
-          <td>300g</td>
-          <td class="price">￥2,590</td>
-        </tr></tbody>
-        </table>
-      </div><div class="vargroup">
-        <h3><span class="badge" style="background:#dc2626">競合</span> 【桜馬】馬刺し 阿蘇牧場</h3>
-        <table class="vartable">
-          <thead><tr><th>バリエーション</th><th>ASIN</th><th>容量</th><th>価格</th></tr></thead>
-          <tbody><tr>
-          <td>1000g（50g×20P）</td>
-          <td class="asin">B0BQQWHZXC</td>
-          <td>1000g</td>
-          <td class="price">￥5,490</td>
-        </tr></tbody>
-        </table>
-      </div>
+    <p class="updated">プラス = 自社が高い / マイナス = 自社が安い</p>
   </div>
 
   <footer>
-    価格・バリエーションは Amazon (amazon.co.jp) から自動取得した参考値です。<br>
+    価格は Amazon (amazon.co.jp) から自動取得した参考値です。<br>
     実際の販売価格は各商品ページをご確認ください。
   </footer>
 </div>
 
 <script>
-const C = {"labels": ["2026-06-09"], "datasets": [{"label": "基本ペア", "color": "#2563eb", "data": [-2900]}]};
+const C = {"labels": [], "datasets": [{"label": "1kg（約20人前） vs 桜馬 馬刺し 50g×20（通常）", "color": "#2563eb", "data": []}, {"label": "1kg（約20人前） vs 桜馬 馬刺し 50g×20（お得便）", "color": "#dc2626", "data": []}]};
 new Chart(document.getElementById('chart'), {
   type: 'line',
   data: {
@@ -105,11 +63,7 @@ new Chart(document.getElementById('chart'), {
   },
   options: {
     responsive: true,
-    plugins: {
-      legend: { position: 'bottom' },
-      tooltip: { callbacks: { label: c => c.dataset.label + ': ' +
-        (c.parsed.y > 0 ? '自社+￥' : '自社￥') + c.parsed.y.toLocaleString() } }
-    },
+    plugins: { legend: { position: 'bottom' } },
     scales: { y: { ticks: { callback: v => '￥' + v.toLocaleString() } } }
   }
 });

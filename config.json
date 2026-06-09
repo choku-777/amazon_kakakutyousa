@@ -1,23 +1,17 @@
 {
   "site": "co.jp",
   "title": "Amazon 価格比較（馬刺し：自社 vs 競合）",
-  "products": [
-    {
-      "role": "自社",
-      "name": "新鮮馬刺し プレミアム上赤身",
-      "url": "https://www.amazon.co.jp/dp/B07QNKXR7X"
-    },
-    {
-      "role": "競合",
-      "name": "【桜馬】馬刺し 阿蘇牧場",
-      "url": "https://www.amazon.co.jp/dp/B0BQQWHZXC"
-    }
-  ],
   "pairs": [
     {
-      "label": "基本ペア",
-      "self": "B07QNKXR7X",
-      "competitor": "B0BQQWHZXC"
+      "label": "1kg（約20人前）",
+      "self": {
+        "name": "自社 馬刺し プレミアム上赤身 1kg 詰め合わせ",
+        "asin": "B07PSMQQJC"
+      },
+      "competitors": [
+        { "name": "桜馬 馬刺し 50g×20（通常）", "asin": "B0BQQWHZXC" },
+        { "name": "桜馬 馬刺し 50g×20（お得便）", "asin": "B0H1PLJT3R" }
+      ]
     }
   ]
 }
