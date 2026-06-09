@@ -1,1 +1,38 @@
-[]
+[
+  {
+    "date": "2026-06-09",
+    "unit_grams": 100,
+    "products": {
+      "自社": {
+        "name": "新鮮馬刺し プレミアム上赤身 300g 約50g×6P（約6人前）",
+        "url": "https://www.amazon.co.jp/dp/B07QNKXR7X",
+        "best_asin": null,
+        "best_unit_price": null,
+        "variations": {
+          "B07QNKXR7X": {
+            "price": null,
+            "grams": 300,
+            "unit_price": null,
+            "label": "300g（50g×6P）",
+            "stale": false
+          }
+        }
+      },
+      "競合": {
+        "name": "【桜馬】馬刺し 阿蘇牧場",
+        "url": "https://www.amazon.co.jp/dp/B0BQQWHZXC",
+        "best_asin": null,
+        "best_unit_price": null,
+        "variations": {
+          "B0BQQWHZXC": {
+            "price": null,
+            "grams": 1000,
+            "unit_price": null,
+            "label": "1000g（50g×20P）",
+            "stale": false
+          }
+        }
+      }
+    }
+  }
+]

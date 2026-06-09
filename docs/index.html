@@ -36,7 +36,7 @@
 <body>
 <div class="wrap">
   <h1>Amazon 価格比較（馬刺し：自社 vs 競合）</h1>
-  <p class="updated">最終更新: 未取得（1日1回自動更新） / 比較単位: 100g あたり単価</p>
+  <p class="updated">最終更新: 2026-06-09（1日1回自動更新） / 比較単位: 100g あたり単価</p>
 
   <div class="card">
     <h2>サマリー（100g 単価で比較）</h2>
@@ -68,7 +68,29 @@
 
   <div class="card">
     <h2>バリエーション内訳</h2>
-    <p>データ未取得</p>
+    <div class="vargroup">
+        <h3><span class="badge" style="background:#2563eb">自社</span> 新鮮馬刺し プレミアム上赤身 300g 約50g×6P（約6人前）</h3>
+        <table class="vartable">
+          <thead><tr><th>バリエーション</th><th>容量</th><th>価格</th><th>100g単価</th></tr></thead>
+          <tbody><tr>
+          <td>300g（50g×6P）</td>
+          <td>300g</td>
+          <td>—</td>
+          <td>—</td>
+        </tr></tbody>
+        </table>
+      </div><div class="vargroup">
+        <h3><span class="badge" style="background:#dc2626">競合</span> 【桜馬】馬刺し 阿蘇牧場</h3>
+        <table class="vartable">
+          <thead><tr><th>バリエーション</th><th>容量</th><th>価格</th><th>100g単価</th></tr></thead>
+          <tbody><tr>
+          <td>1000g（50g×20P）</td>
+          <td>1000g</td>
+          <td>—</td>
+          <td>—</td>
+        </tr></tbody>
+        </table>
+      </div>
   </div>
 
   <footer>
@@ -79,7 +101,7 @@
 </div>
 
 <script>
-const C = {"labels": [], "datasets": [{"role": "自社", "color": "#2563eb", "data": []}, {"role": "競合", "color": "#dc2626", "data": []}]};
+const C = {"labels": ["2026-06-09"], "datasets": [{"role": "自社", "color": "#2563eb", "data": [null]}, {"role": "競合", "color": "#dc2626", "data": [null]}]};
 new Chart(document.getElementById('chart'), {
   type: 'line',
   data: {
