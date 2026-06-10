@@ -206,31 +206,50 @@ def scrape(config: dict, history: list) -> list:
 
 
 def notify_discord(history: list) -> None:
-    """前日比で価格が変動した商品があれば Discord Webhook に通知する。"""
+    """毎回、全ペアの比較内容を Discord Webhook に通知する（変動有無を問わず）。
+
+    前日比で変動があった商品にはその差分も併記する。
+    """
     url = os.environ.get("DISCORD_WEBHOOK_URL")
-    if not url or len(history) < 2:
+    if not url or not history:
         return
-    today, prev = history[-1], history[-2]
+    today = history[-1]
+    prev = history[-2] if len(history) >= 2 else {}
+
+    def delta(cur, old) -> str:
+        if cur is None or old is None or cur == old:
+            return ""
+        d = cur - old
+        return f"（前日比 {'🔺+' if d > 0 else '🔻-'}￥{abs(d):,}）"
+
+    def compare(self_p, comp_p) -> str:
+        if self_p is None or comp_p is None:
+            return ""
+        d = self_p - comp_p
+        if d > 0:
+            return f" → 自社が ￥{d:,} 高い"
+        if d < 0:
+            return f" → 自社が ￥{abs(d):,} 安い"
+        return " → 同額"
+
     blocks = []
     for label, pair in today.get("pairs", {}).items():
         pprev = prev.get("pairs", {}).get(label, {})
-        items = [("自社", pair.get("self", {}), pprev.get("self", {}))]
+        s = pair.get("self", {})
+        sp = s.get("price")
+        s_mark = " ⚠前回値" if s.get("stale") else ""
+        lines = [f"自社: {fmt_yen(sp)}{s_mark} {delta(sp, pprev.get('self', {}).get('price'))}".rstrip()]
         for asin, comp in pair.get("competitors", {}).items():
-            items.append((comp.get("name", asin), comp,
-                          pprev.get("competitors", {}).get(asin, {})))
-        changes = []
-        for name, cur, old in items:
-            cp, op = cur.get("price"), old.get("price")
-            if cp is not None and op is not None and cp != op:
-                d = cp - op
-                arrow = "🔺+" if d > 0 else "🔻-"
-                changes.append(f"・{name}: ￥{op:,} → ￥{cp:,} （{arrow}￥{abs(d):,}）")
-        if changes:
-            blocks.append(f"**【{label}】**\n" + "\n".join(changes))
-    if not blocks:
-        print("Discord通知: 前日比の変動なし（送信しない）", flush=True)
-        return
-    content = (f"📊 **Amazon価格変動** （{today['date']} / 前日比）\n\n"
+            cp = comp.get("price")
+            oc = pprev.get("competitors", {}).get(asin, {}).get("price")
+            c_mark = " ⚠前回値" if comp.get("stale") else ""
+            lines.append(
+                f"・{comp.get('name', asin)}: {fmt_yen(cp)}{c_mark} "
+                f"{delta(cp, oc)}{compare(sp, cp)}".replace("  ", " ").rstrip()
+            )
+        blocks.append(f"**【{label}】**\n" + "\n".join(lines))
+
+    content = (f"📊 **Amazon価格レポート**（{today['date']}）\n\n"
                + "\n\n".join(blocks)
                + "\n\nhttps://choku-777.github.io/amazon_kakakutyousa/")
     try:
