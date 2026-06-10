@@ -36,6 +36,8 @@ jobs:
           SCRAPERAPI_KEY: ${{ secrets.SCRAPERAPI_KEY }}
           SCRAPERAPI_OPTS: ${{ secrets.SCRAPERAPI_OPTS }}
           SCRAPER_PROXY: ${{ secrets.SCRAPER_PROXY }}
+          # 価格変動を通知する Discord Webhook URL（設定すると有効化）
+          DISCORD_WEBHOOK_URL: ${{ secrets.DISCORD_WEBHOOK_URL }}
         run: python scraper.py
 
       - name: 履歴 & HTML をコミット

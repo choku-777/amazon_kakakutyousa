@@ -205,6 +205,41 @@ def scrape(config: dict, history: list) -> list:
     return history
 
 
+def notify_discord(history: list) -> None:
+    """前日比で価格が変動した商品があれば Discord Webhook に通知する。"""
+    url = os.environ.get("DISCORD_WEBHOOK_URL")
+    if not url or len(history) < 2:
+        return
+    today, prev = history[-1], history[-2]
+    blocks = []
+    for label, pair in today.get("pairs", {}).items():
+        pprev = prev.get("pairs", {}).get(label, {})
+        items = [("自社", pair.get("self", {}), pprev.get("self", {}))]
+        for asin, comp in pair.get("competitors", {}).items():
+            items.append((comp.get("name", asin), comp,
+                          pprev.get("competitors", {}).get(asin, {})))
+        changes = []
+        for name, cur, old in items:
+            cp, op = cur.get("price"), old.get("price")
+            if cp is not None and op is not None and cp != op:
+                d = cp - op
+                arrow = "🔺+" if d > 0 else "🔻-"
+                changes.append(f"・{name}: ￥{op:,} → ￥{cp:,} （{arrow}￥{abs(d):,}）")
+        if changes:
+            blocks.append(f"**【{label}】**\n" + "\n".join(changes))
+    if not blocks:
+        print("Discord通知: 前日比の変動なし（送信しない）", flush=True)
+        return
+    content = (f"📊 **Amazon価格変動** （{today['date']} / 前日比）\n\n"
+               + "\n\n".join(blocks)
+               + "\n\nhttps://choku-777.github.io/amazon_kakakutyousa/")
+    try:
+        r = requests.post(url, json={"content": content[:1900]}, timeout=20)
+        print(f"Discord通知: HTTP {r.status_code}", flush=True)
+    except requests.RequestException as exc:  # noqa: BLE001
+        print(f"Discord通知失敗: {exc}", flush=True)
+
+
 def fmt_yen(v) -> str:
     return "—" if v is None else f"￥{int(v):,}"
 
@@ -264,7 +299,14 @@ def render_html(config: dict, history: list) -> str:
                 "data": [r.get("pairs", {}).get(label, {}).get("competitors", {}).get(casin, {}).get("price")
                          for r in history],
             })
-        charts.append({"id": f"chart-{i}", "datasets": ds})
+        # 縦軸を50円刻みに固定（全グラフで目盛り間隔を統一）
+        vals = [v for d in ds for v in d["data"] if v is not None]
+        if vals:
+            ymin = (min(vals) // 50) * 50 - 50
+            ymax = ((max(vals) + 49) // 50) * 50 + 50
+        else:
+            ymin = ymax = None
+        charts.append({"id": f"chart-{i}", "datasets": ds, "ymin": ymin, "ymax": ymax})
 
         pair_blocks.append(f"""<div class="card">
         <h2>ペア: {label}</h2>
@@ -366,7 +408,10 @@ C.charts.forEach(ch => {{
     options: {{
       responsive: true,
       plugins: {{ legend: {{ position: 'bottom' }} }},
-      scales: {{ y: {{ ticks: {{ callback: v => '￥' + v.toLocaleString() }} }} }}
+      scales: {{ y: {{
+        min: ch.ymin, max: ch.ymax,
+        ticks: {{ stepSize: 50, callback: v => '￥' + v.toLocaleString() }}
+      }} }}
     }}
   }});
 }});
@@ -390,6 +435,7 @@ def main() -> int:
     if not args.html_only:
         history = scrape(config, history)
         save_json(DATA_PATH, history)
+        notify_discord(history)
 
     html = render_html(config, history)
     HTML_PATH.parent.mkdir(parents=True, exist_ok=True)
