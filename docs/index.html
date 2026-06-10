@@ -54,7 +54,7 @@
 <body>
 <div class="wrap">
   <h1>Amazon 価格比較（馬刺し：自社 vs 競合）</h1>
-  <p class="updated">最終更新: 2026-06-09（1日1回自動更新）</p>
+  <p class="updated">最終更新: 2026-06-10（1日1回自動更新）</p>
 
   <div class="card">
         <h2>ペア: 1kg（約20人前）</h2>
@@ -62,18 +62,18 @@
           <span class="badge" style="background:#2563eb">自社</span>
           自社 馬刺し プレミアム上赤身 1kg 詰め合わせ（1000g）
           <span class="asin">B07PSMQQJC</span>
-          <span class="bigprice">￥5,580</span>
+          <span class="bigprice">￥5,380</span>
         </div>
         <table>
           <thead><tr><th>競合</th><th>価格</th><th>自社との比較</th></tr></thead>
           <tbody><tr>
           <td data-label="競合">桜馬 馬刺し 50g×20（通常）（1000g）<br><span class="asin">B0BQQWHZXC</span></td>
           <td class="price" data-label="価格">￥5,490</td>
-          <td class="diff" data-label="比較"><span class='up'>自社が ￥90 高い</span></td>
+          <td class="diff" data-label="比較"><span class='down'>自社が ￥110 安い</span></td>
         </tr><tr>
           <td data-label="競合">桜馬 馬刺し 50g×20（節約便）（1000g）<br><span class="asin">B0H1PLJT3R</span></td>
-          <td class="price" data-label="価格">￥5,290 <span class='stale'>(前回値)</span></td>
-          <td class="diff" data-label="比較"><span class='up'>自社が ￥290 高い</span></td>
+          <td class="price" data-label="価格">￥5,290</td>
+          <td class="diff" data-label="比較"><span class='up'>自社が ￥90 高い</span></td>
         </tr></tbody>
         </table>
         <div class="charttitle">価格推移</div>
@@ -106,14 +106,14 @@
           <span class="badge" style="background:#2563eb">自社</span>
           自社 馬刺し プレミアム上赤身 300g（300g）
           <span class="asin">B07QNKXR7X</span>
-          <span class="bigprice">￥2,590</span>
+          <span class="bigprice">￥2,680</span>
         </div>
         <table>
           <thead><tr><th>競合</th><th>価格</th><th>自社との比較</th></tr></thead>
           <tbody><tr>
           <td data-label="競合">桜馬 馬刺し 300g（300g）<br><span class="asin">B0BPHM8BBG</span></td>
           <td class="price" data-label="価格">￥2,750</td>
-          <td class="diff" data-label="比較"><span class='down'>自社が ￥160 安い</span></td>
+          <td class="diff" data-label="比較"><span class='down'>自社が ￥70 安い</span></td>
         </tr></tbody>
         </table>
         <div class="charttitle">価格推移</div>
@@ -145,7 +145,7 @@
 </div>
 
 <script>
-const C = {"labels": ["2026-06-09"], "charts": [{"id": "chart-0", "datasets": [{"label": "自社", "color": "#2563eb", "data": [5580]}, {"label": "桜馬 馬刺し 50g×20（通常）", "color": "#dc2626", "data": [5490]}, {"label": "桜馬 馬刺し 50g×20（節約便）", "color": "#059669", "data": [5290]}]}, {"id": "chart-1", "datasets": [{"label": "自社", "color": "#2563eb", "data": [3240]}, {"label": "桜馬 馬刺し 500g（通常）", "color": "#dc2626", "data": [3390]}, {"label": "桜馬 馬刺し 500g（節約便）", "color": "#059669", "data": [3190]}]}, {"id": "chart-2", "datasets": [{"label": "自社", "color": "#2563eb", "data": [2590]}, {"label": "桜馬 馬刺し 300g", "color": "#dc2626", "data": [2750]}]}, {"id": "chart-3", "datasets": [{"label": "自社", "color": "#2563eb", "data": [2260]}, {"label": "桜馬 馬刺し 200g", "color": "#dc2626", "data": [2280]}]}]};
+const C = {"labels": ["2026-06-09", "2026-06-10"], "charts": [{"id": "chart-0", "datasets": [{"label": "自社", "color": "#2563eb", "data": [5580, 5380]}, {"label": "桜馬 馬刺し 50g×20（通常）", "color": "#dc2626", "data": [5490, 5490]}, {"label": "桜馬 馬刺し 50g×20（節約便）", "color": "#059669", "data": [5290, 5290]}]}, {"id": "chart-1", "datasets": [{"label": "自社", "color": "#2563eb", "data": [3240, 3240]}, {"label": "桜馬 馬刺し 500g（通常）", "color": "#dc2626", "data": [3390, 3390]}, {"label": "桜馬 馬刺し 500g（節約便）", "color": "#059669", "data": [3190, 3190]}]}, {"id": "chart-2", "datasets": [{"label": "自社", "color": "#2563eb", "data": [2590, 2680]}, {"label": "桜馬 馬刺し 300g", "color": "#dc2626", "data": [2750, 2750]}]}, {"id": "chart-3", "datasets": [{"label": "自社", "color": "#2563eb", "data": [2260, 2260]}, {"label": "桜馬 馬刺し 200g", "color": "#dc2626", "data": [2280, 2280]}]}]};
 C.charts.forEach(ch => {
   new Chart(document.getElementById(ch.id), {
     type: 'line',
