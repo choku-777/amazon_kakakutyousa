@@ -216,6 +216,14 @@ def notify_discord(history: list) -> None:
     today = history[-1]
     prev = history[-2] if len(history) >= 2 else {}
 
+    # 取得失敗（前回値 or 価格なし）の件数を集計して警告に使う
+    total = failed = 0
+    for pair in today.get("pairs", {}).values():
+        for it in [pair.get("self", {})] + list(pair.get("competitors", {}).values()):
+            total += 1
+            if it.get("stale") or it.get("price") is None:
+                failed += 1
+
     def delta(cur, old) -> str:
         if cur is None or old is None or cur == old:
             return ""
@@ -249,8 +257,12 @@ def notify_discord(history: list) -> None:
             )
         blocks.append(f"**【{label}】**\n" + "\n".join(lines))
 
-    content = (f"📊 **Amazon価格レポート**（{today['date']}）\n\n"
-               + "\n\n".join(blocks)
+    header = f"📊 **Amazon価格レポート**（{today['date']}）\n"
+    if failed:
+        header = (f"⚠️ **取得失敗 {failed}/{total}件**（前回値を表示中）\n"
+                  f"→ ScraperAPIのクレジット残量・APIキーをご確認ください\n\n"
+                  + header)
+    content = (header + "\n" + "\n\n".join(blocks)
                + "\n\nhttps://choku-777.github.io/amazon_kakakutyousa/")
     try:
         r = requests.post(url, json={"content": content[:1900]}, timeout=20)
