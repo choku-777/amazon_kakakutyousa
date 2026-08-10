@@ -3183,5 +3183,96 @@
         }
       }
     }
+  },
+  {
+    "date": "2026-08-10",
+    "pairs": {
+      "1kg（約20人前）": {
+        "self": {
+          "name": "自社 馬刺し プレミアム上赤身 1kg 詰め合わせ",
+          "asin": "B07PSMQQJC",
+          "grams": 1000,
+          "price": 5380,
+          "stale": false
+        },
+        "competitors": {
+          "B0BQQWHZXC": {
+            "name": "桜馬 馬刺し 50g×20（通常）",
+            "asin": "B0BQQWHZXC",
+            "grams": 1000,
+            "price": 5490,
+            "stale": false
+          },
+          "B0H1PLJT3R": {
+            "name": "桜馬 馬刺し 50g×20（節約便）",
+            "asin": "B0H1PLJT3R",
+            "grams": 1000,
+            "price": 5290,
+            "stale": false
+          }
+        }
+      },
+      "500g（約10人前）": {
+        "self": {
+          "name": "自社 馬刺し プレミアム上赤身 500g",
+          "asin": "B01LXWL6EU",
+          "grams": 500,
+          "price": 3240,
+          "stale": false
+        },
+        "competitors": {
+          "B0BQQ3WC4P": {
+            "name": "桜馬 馬刺し 500g（通常）",
+            "asin": "B0BQQ3WC4P",
+            "grams": 500,
+            "price": 3390,
+            "stale": false
+          },
+          "B0GS1GQ86G": {
+            "name": "桜馬 馬刺し 500g（節約便）",
+            "asin": "B0GS1GQ86G",
+            "grams": 500,
+            "price": 3190,
+            "stale": false
+          }
+        }
+      },
+      "300g（約6人前）": {
+        "self": {
+          "name": "自社 馬刺し プレミアム上赤身 300g",
+          "asin": "B07QNKXR7X",
+          "grams": 300,
+          "price": 2680,
+          "stale": false
+        },
+        "competitors": {
+          "B0BPHM8BBG": {
+            "name": "桜馬 馬刺し 300g",
+            "asin": "B0BPHM8BBG",
+            "grams": 300,
+            "price": 2750,
+            "stale": false
+          }
+        }
+      },
+      "200g（約4人前）": {
+        "self": {
+          "name": "自社 馬刺し プレミアム上赤身 200g",
+          "asin": "B0GJV63DJB",
+          "grams": 200,
+          "price": 2260,
+          "stale": false
+        },
+        "competitors": {
+          "B0F1LGRFCR": {
+            "name": "桜馬 馬刺し 200g",
+            "asin": "B0F1LGRFCR",
+            "grams": 200,
+            "price": 2280,
+            "stale": false
+          }
+        }
+      }
+    }
   }
 ]
